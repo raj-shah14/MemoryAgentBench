@@ -1,0 +1,29 @@
+{
+  "jobs": [
+    {
+      "name": "mem0_eventqa_sample",
+      "run_id": "mem0-eventqa-sample",
+      "backend": "mem0",
+      "environment_profile": "memory",
+      "agent_config": "configs/agent_conf/RAG_Agents/gpt-4o-mini/Structure_rag_gpt-4o-mini-mem0.yaml",
+      "dataset_config": "configs/data_conf/Accurate_Retrieval/EventQA/Eventqa_64k.yaml"
+    },
+    {
+      "name": "letta_longmemeval_sample",
+      "run_id": "letta-longmemeval-sample",
+      "backend": "letta",
+      "environment_profile": "memory",
+      "agent_config": "configs/agent_conf/RAG_Agents/gpt-4o-mini/Agentic_memory_gpt-4o-mini-letta.yaml",
+      "dataset_config": "configs/data_conf/Accurate_Retrieval/LongMemEval/Longmemeval_s.yaml"
+    },
+    {
+      "name": "hipporag_eventqa_sample",
+      "run_id": "hipporag-eventqa-sample",
+      "backend": "hipporag",
+      "environment_profile": "hipporag",
+      "agent_config": "configs/agent_conf/RAG_Agents/gpt-4o-mini/Structure_rag_gpt-4o-mini-hippo_rag_v2_nv.yaml",
+      "dataset_config": "configs/data_conf/Accurate_Retrieval/EventQA/Eventqa_64k.yaml",
+      "max_test_queries_ablation": 4
+    }
+  ]
+}

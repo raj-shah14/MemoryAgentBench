@@ -1,0 +1,29 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: materialize_benchmark_matrix
+display_name: Materialize Benchmark Matrix
+version: 1
+description: Split a benchmark matrix spec into one shard file per child run, grouped by environment profile.
+
+code: ../scripts
+environment: azureml:mabench-base:1
+
+inputs:
+  matrix_spec:
+    type: uri_file
+
+outputs:
+  base_shards:
+    type: uri_folder
+  memory_shards:
+    type: uri_folder
+  hipporag_shards:
+    type: uri_folder
+
+command: >-
+  python materialize_matrix.py
+  --matrix_spec ${{inputs.matrix_spec}}
+  --base_output_dir ${{outputs.base_shards}}
+  --memory_output_dir ${{outputs.memory_shards}}
+  --hipporag_output_dir ${{outputs.hipporag_shards}}

@@ -1,0 +1,65 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+
+display_name: memoryagentbench_parallel_dryrun_cmd
+experiment_name: memoryagentbench_parallel_dryrun
+description: Smoke pipeline using `command` jobs for fan-out (no parallel-runner Table dependency). Validates the matrix -> per-profile fan-out -> reducer shape end-to-end without invoking real backends.
+
+settings:
+  default_datastore: azureml:workspaceblobstore
+  default_compute: azureml:image-builder
+  continue_on_step_failure: false
+
+inputs:
+  source_tree:
+    type: uri_folder
+    path: ../..
+  matrix_spec:
+    type: uri_file
+    path: ../matrix/dryrun_matrix.json
+
+outputs:
+  aggregate_report:
+    type: uri_folder
+    mode: upload
+
+jobs:
+  materialize_matrix:
+    type: command
+    component: ../components/materialize_matrix_dryrun.yml
+    inputs:
+      matrix_spec: ${{parent.inputs.matrix_spec}}
+
+  run_base:
+    type: command
+    component: ../components/run_shards_dryrun.yml
+    inputs:
+      source_tree: ${{parent.inputs.source_tree}}
+      shards: ${{parent.jobs.materialize_matrix.outputs.base_shards}}
+      environment_profile: base
+
+  run_memory:
+    type: command
+    component: ../components/run_shards_dryrun.yml
+    inputs:
+      source_tree: ${{parent.inputs.source_tree}}
+      shards: ${{parent.jobs.materialize_matrix.outputs.memory_shards}}
+      environment_profile: memory
+
+  run_hipporag:
+    type: command
+    component: ../components/run_shards_dryrun.yml
+    inputs:
+      source_tree: ${{parent.inputs.source_tree}}
+      shards: ${{parent.jobs.materialize_matrix.outputs.hipporag_shards}}
+      environment_profile: hipporag
+
+  aggregate:
+    type: command
+    component: ../components/aggregate_results_dryrun.yml
+    inputs:
+      base_artifacts: ${{parent.jobs.run_base.outputs.bundles}}
+      memory_artifacts: ${{parent.jobs.run_memory.outputs.bundles}}
+      hipporag_artifacts: ${{parent.jobs.run_hipporag.outputs.bundles}}
+    outputs:
+      report_dir: ${{parent.outputs.aggregate_report}}

@@ -31,13 +31,16 @@ def setup_configs_and_directories(command_line_args):
     # Apply ablation study parameters if specified
     _apply_ablation_parameters(command_line_args, agent_config, dataset_config)
     
+    runtime_config = _build_runtime_config(command_line_args, agent_config, dataset_config)
+
     # Clean up previous agent data if necessary
-    _cleanup_agent_directories(agent_config)
+    _cleanup_agent_directories(agent_config, runtime_config)
+    _ensure_runtime_directories(runtime_config)
     
     # Create output directory and file path
-    output_file_path = _create_output_path(agent_config, dataset_config)
+    output_file_path = _create_output_path(agent_config, dataset_config, runtime_config)
     
-    return agent_config, dataset_config, output_file_path
+    return agent_config, dataset_config, runtime_config, output_file_path
 
 
 def create_agent_and_fetch_data(agent_config, dataset_config):
@@ -118,7 +121,7 @@ def load_existing_results(output_file_path, dataset_config, all_query_answer_pai
     return metrics, results, last_completed_context_id, total_queries_processed
 
 
-def generate_agent_save_folder(agent_config, dataset_config, current_context_index):
+def generate_agent_save_folder(agent_config, dataset_config, current_context_index, runtime_config):
     """
     Generate the agent save folder path based on agent type and configuration.
     
@@ -134,16 +137,17 @@ def generate_agent_save_folder(agent_config, dataset_config, current_context_ind
     
     # Generate base path based on agent type
     if any(agent_type in agent_name for agent_type in ["mem0", "cognee", "letta", "zep"]):
-        base_path = _generate_memory_agent_base_path(agent_config, dataset_config)
-        return f"{base_path}/exp_{current_context_index}"
+        base_path = _generate_memory_agent_base_path(agent_config, dataset_config, runtime_config)
+        return os.path.join(base_path, f"exp_{current_context_index}")
     elif "rag" in agent_name:
-        return _generate_rag_agent_path(agent_config, dataset_config, current_context_index)
+        return _generate_rag_agent_path(agent_config, dataset_config, current_context_index, runtime_config)
     else:
-        return _generate_default_agent_path(agent_config, dataset_config, current_context_index)
+        return _generate_default_agent_path(agent_config, dataset_config, current_context_index, runtime_config)
 
 
 def initialize_and_memorize_agent(agent_config, dataset_config, agent_save_folder, 
-                                 context_chunks, current_context_index, total_contexts_count):
+                                 context_chunks, current_context_index, total_contexts_count,
+                                 runtime_config):
     """
     Initialize agent and handle memorization if needed.
     
@@ -159,7 +163,12 @@ def initialize_and_memorize_agent(agent_config, dataset_config, agent_save_folde
         AgentWrapper: Initialized agent ready for querying
     """
     # Initialize the agent wrapper
-    agent = AgentWrapper(agent_config, dataset_config, load_agent_from=agent_save_folder)
+    agent = AgentWrapper(
+        agent_config,
+        dataset_config,
+        load_agent_from=agent_save_folder,
+        runtime_config=runtime_config,
+    )
     
     # Handle memorization or loading based on whether saved state exists
     if os.path.exists(agent_save_folder):
@@ -208,19 +217,65 @@ def _apply_chunk_size_ablation(command_line_args, agent_config, dataset_config):
         print(f"\n\nUsing new chunk_size: {dataset_config['chunk_size']}\n\n")
 
 
-def _cleanup_agent_directories(agent_config):
+def _cleanup_agent_directories(agent_config, runtime_config):
     """Clean up previous agent data directories if necessary."""
     if agent_config['agent_name'] == 'cognee':
-        for directory_path in ['./cognee/.data_storage/data', './cognee/.cognee_system/databases']:
+        for directory_path in [runtime_config['cognee_data_root'], runtime_config['cognee_system_root']]:
             if os.path.exists(directory_path):
                 shutil.rmtree(directory_path)
+
+
+def _build_runtime_config(command_line_args, agent_config, dataset_config):
+    """Build run-scoped paths for backend state and result artifacts."""
+    run_id = command_line_args.run_id or 'default'
+    name_tag = _generate_output_name_tag(agent_config, dataset_config)
+
+    default_artifact_root = os.path.join(
+        agent_config['output_dir'],
+        dataset_config['dataset'],
+        name_tag,
+        run_id,
+    )
+    artifact_root = command_line_args.artifact_root or default_artifact_root
+    state_root = command_line_args.state_root or os.path.join(artifact_root, '_state')
+
+    return {
+        'run_id': run_id,
+        'name_tag': name_tag,
+        'artifact_root': artifact_root,
+        'state_root': state_root,
+        'results_path': os.path.join(artifact_root, 'results.json'),
+        'summary_path': os.path.join(artifact_root, 'summary.json'),
+        'metadata_path': os.path.join(artifact_root, 'metadata.json'),
+        'retrieval_artifacts_root': os.path.join(artifact_root, 'retrieval'),
+        'agent_state_root': os.path.join(state_root, 'agents'),
+        'letta_dir': os.path.join(state_root, 'letta'),
+        'cognee_data_root': os.path.join(state_root, 'cognee', 'data'),
+        'cognee_system_root': os.path.join(state_root, 'cognee', 'system'),
+        'agent_config_path': command_line_args.agent_config,
+        'dataset_config_path': command_line_args.dataset_config,
+    }
+
+
+def _ensure_runtime_directories(runtime_config):
+    """Ensure the per-run artifact and state directories exist before execution."""
+    for directory_path in [
+        runtime_config['artifact_root'],
+        runtime_config['state_root'],
+        runtime_config['agent_state_root'],
+        runtime_config['retrieval_artifacts_root'],
+        runtime_config['letta_dir'],
+        runtime_config['cognee_data_root'],
+        runtime_config['cognee_system_root'],
+    ]:
+        os.makedirs(directory_path, exist_ok=True)
 
 
 # ============================================================================
 # OUTPUT PATH GENERATION HELPERS
 # ============================================================================
 
-def _create_output_path(agent_config, dataset_config):
+def _create_output_path(agent_config, dataset_config, runtime_config):
     """
     Create output directory and return the output file path.
     
@@ -231,15 +286,8 @@ def _create_output_path(agent_config, dataset_config):
     Returns:
         str: Path to the output results file
     """
-    # Generate name tag based on agent type and configuration
-    name_tag = _generate_output_name_tag(agent_config, dataset_config)
-    
-    # Create output directory for this dataset
-    output_directory = os.path.join(agent_config['output_dir'], dataset_config['dataset'])
-    os.makedirs(output_directory, exist_ok=True)
-    
-    # Create complete output file path
-    return os.path.join(output_directory, f"{name_tag}_results.json")
+    os.makedirs(runtime_config['artifact_root'], exist_ok=True)
+    return runtime_config['results_path']
 
 
 def _generate_output_name_tag(agent_config, dataset_config):
@@ -312,26 +360,36 @@ def _calculate_last_completed_context_id(all_query_answer_pairs, total_queries_p
 # AGENT FOLDER GENERATION HELPERS
 # ============================================================================
 
-def _generate_memory_agent_base_path(agent_config, dataset_config):
+def _generate_memory_agent_base_path(agent_config, dataset_config, runtime_config):
     """Generate base path for memory agents (letta, mem0, cognee, zep)."""
     agent_name = agent_config['agent_name']
-    base_path = f"./agents/{agent_name}_{dataset_config['sub_dataset']}_chunk{agent_config['agent_chunk_size']}_model{agent_config['model']}"
+    base_path = os.path.join(
+        runtime_config['agent_state_root'],
+        f"{agent_name}_{dataset_config['sub_dataset']}_chunk{agent_config['agent_chunk_size']}_model{agent_config['model']}"
+    )
     
     return (f"{base_path}_mode{agent_config['letta_mode']}" 
             if "letta" in agent_name else base_path)
 
 
-def _generate_rag_agent_path(agent_config, dataset_config, current_context_index):
+def _generate_rag_agent_path(agent_config, dataset_config, current_context_index, runtime_config):
     """Generate path for RAG agents."""
-    return (f"./agents/{agent_config['agent_name']}_{dataset_config['sub_dataset']}"
-            f"_k{agent_config['retrieve_num']}_chunk{dataset_config['chunk_size']}"
-            f"_model{agent_config['model']}/exp_{current_context_index}")
+    return os.path.join(
+        runtime_config['agent_state_root'],
+        f"{agent_config['agent_name']}_{dataset_config['sub_dataset']}"
+        f"_k{agent_config['retrieve_num']}_chunk{dataset_config['chunk_size']}"
+        f"_model{agent_config['model']}",
+        f"exp_{current_context_index}",
+    )
 
 
-def _generate_default_agent_path(agent_config, dataset_config, current_context_index):
+def _generate_default_agent_path(agent_config, dataset_config, current_context_index, runtime_config):
     """Generate path for default agents."""
-    return (f"./agents/{agent_config['agent_name']}_{dataset_config['sub_dataset']}"
-            f"/exp_{current_context_index}")
+    return os.path.join(
+        runtime_config['agent_state_root'],
+        f"{agent_config['agent_name']}_{dataset_config['sub_dataset']}",
+        f"exp_{current_context_index}",
+    )
 
 
 # ============================================================================

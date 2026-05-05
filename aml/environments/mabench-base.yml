@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: mabench-base
+version: 1
+description: Base environment for non-conflicting MemoryAgentBench workloads.
+image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+conda_file: conda/base.yml

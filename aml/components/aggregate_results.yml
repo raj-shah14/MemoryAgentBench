@@ -1,0 +1,29 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: aggregate_benchmark_results
+display_name: Aggregate Benchmark Results
+version: 1
+description: Combine child result bundles into a single report directory.
+
+code: ../scripts
+environment: azureml:mabench-base:1
+
+inputs:
+  base_artifacts:
+    type: uri_folder
+  memory_artifacts:
+    type: uri_folder
+  hipporag_artifacts:
+    type: uri_folder
+
+outputs:
+  report_dir:
+    type: uri_folder
+
+command: >-
+  python aggregate_results.py
+  --base_artifacts ${{inputs.base_artifacts}}
+  --memory_artifacts ${{inputs.memory_artifacts}}
+  --hipporag_artifacts ${{inputs.hipporag_artifacts}}
+  --report_dir ${{outputs.report_dir}}

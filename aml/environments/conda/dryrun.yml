@@ -1,0 +1,10 @@
+name: mabench-dryrun
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - azureml-core
+      - azureml-dataset-runtime
+      - azureml-defaults

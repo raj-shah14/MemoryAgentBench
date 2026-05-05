@@ -1,0 +1,28 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: run_matrix_sequential_dryrun
+display_name: Run Matrix Sequentially (dry-run)
+version: 1
+description: Iterate every shard in the raw matrix file in a single process. Used to baseline against the parallel pipeline.
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-dryrun:2
+
+inputs:
+  source_tree:
+    type: uri_folder
+  matrix_spec:
+    type: uri_file
+
+outputs:
+  bundles:
+    type: uri_folder
+
+command: >-
+  python run_sequential_benchmark.py
+  --matrix_spec ${{inputs.matrix_spec}}
+  --repo_root ${{inputs.source_tree}}
+  --out_root ${{outputs.bundles}}
+  --dry_run

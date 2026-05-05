@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: mabench-dryrun
+version: 2
+description: Minimal Python environment used for AML pipeline dry-run smoke validation only.
+image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+conda_file: conda/dryrun.yml

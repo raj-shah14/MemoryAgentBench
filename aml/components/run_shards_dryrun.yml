@@ -1,0 +1,31 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: run_benchmark_shards_dryrun
+display_name: Run Benchmark Shards (dry-run, command)
+version: 1
+description: Iterate every shard in a uri_folder and emit a stub bundle for each one. Avoids the parallel runner table-store auth requirement.
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-dryrun:2
+
+inputs:
+  source_tree:
+    type: uri_folder
+  shards:
+    type: uri_folder
+  environment_profile:
+    type: string
+
+outputs:
+  bundles:
+    type: uri_folder
+
+command: >-
+  python run_parallel_benchmark.py
+  --repo_root ${{inputs.source_tree}}
+  --artifacts_root ${{outputs.bundles}}
+  --environment_profile ${{inputs.environment_profile}}
+  --shards_dir ${{inputs.shards}}
+  --dry_run

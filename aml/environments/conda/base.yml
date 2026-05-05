@@ -1,0 +1,9 @@
+name: mabench-base
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - numpy<2
+      - -r ../../../requirements.txt
