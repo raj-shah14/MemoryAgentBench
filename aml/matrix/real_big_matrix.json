@@ -1,0 +1,16 @@
+{
+  "jobs": [
+    {"name": "big-base-01",     "run_id": "big-base-01",     "environment_profile": "base",     "real_completion_calls": 60},
+    {"name": "big-base-02",     "run_id": "big-base-02",     "environment_profile": "base",     "real_completion_calls": 60},
+    {"name": "big-base-03",     "run_id": "big-base-03",     "environment_profile": "base",     "real_completion_calls": 60},
+    {"name": "big-base-04",     "run_id": "big-base-04",     "environment_profile": "base",     "real_completion_calls": 60},
+    {"name": "big-memory-01",   "run_id": "big-memory-01",   "environment_profile": "memory",   "real_completion_calls": 60},
+    {"name": "big-memory-02",   "run_id": "big-memory-02",   "environment_profile": "memory",   "real_completion_calls": 60},
+    {"name": "big-memory-03",   "run_id": "big-memory-03",   "environment_profile": "memory",   "real_completion_calls": 60},
+    {"name": "big-memory-04",   "run_id": "big-memory-04",   "environment_profile": "memory",   "real_completion_calls": 60},
+    {"name": "big-hipporag-01", "run_id": "big-hipporag-01", "environment_profile": "hipporag", "real_completion_calls": 60},
+    {"name": "big-hipporag-02", "run_id": "big-hipporag-02", "environment_profile": "hipporag", "real_completion_calls": 60},
+    {"name": "big-hipporag-03", "run_id": "big-hipporag-03", "environment_profile": "hipporag", "real_completion_calls": 60},
+    {"name": "big-hipporag-04", "run_id": "big-hipporag-04", "environment_profile": "hipporag", "real_completion_calls": 60}
+  ]
+}

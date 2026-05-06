@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "name": "real-base-01",
+      "run_id": "real-base-01",
+      "environment_profile": "base",
+      "real_completion_calls": 3,
+      "max_test_queries_ablation": 2
+    },
+    {
+      "name": "real-memory-01",
+      "run_id": "real-memory-01",
+      "environment_profile": "memory",
+      "real_completion_calls": 3,
+      "max_test_queries_ablation": 2
+    },
+    {
+      "name": "real-hipporag-01",
+      "run_id": "real-hipporag-01",
+      "environment_profile": "hipporag",
+      "real_completion_calls": 3,
+      "max_test_queries_ablation": 2
+    }
+  ]
+}

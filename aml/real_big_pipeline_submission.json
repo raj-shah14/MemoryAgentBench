@@ -1,0 +1,10 @@
+{
+  "submitted_at": "2026-05-06T19:29:56.712849Z",
+  "matrix": "C:\\Users\\munrahman\\repos\\MemBenchRajFork\\MemoryAgentBench\\aml\\matrix\\real_big_matrix.json",
+  "num_shards": 12,
+  "job": {
+    "name": "silver_cabbage_jmlm63jqb7",
+    "status": "NotStarted",
+    "studio_url": "https://ml.azure.com/runs/silver_cabbage_jmlm63jqb7?wsid=/subscriptions/c7d74d79-1ca2-4d95-a534-783b00cbf117/resourcegroups/shahra-rg/workspaces/shahra-workspace&tid=72f988bf-86f1-41af-91ab-2d7cd011db47"
+  }
+}

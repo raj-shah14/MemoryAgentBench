@@ -1,0 +1,36 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+
+display_name: memoryagentbench_sequential_real
+experiment_name: memoryagentbench_runtime_compare_real
+description: Sequential baseline for the real-LLM-call comparison. Runs every matrix shard inside a single command job so the parallel fan-out wall-clock advantage can be measured fairly.
+
+settings:
+  default_datastore: azureml:workspaceblobstore
+  default_compute: azureml:image-builder
+  continue_on_step_failure: false
+
+inputs:
+  matrix_spec:
+    type: uri_file
+    path: ../matrix/real_smoke_matrix.json
+
+outputs:
+  aggregate_report:
+    type: uri_folder
+    mode: upload
+
+jobs:
+  run_all:
+    type: command
+    component: ../components/run_matrix_sequential_real.yml
+    inputs:
+      matrix_spec: ${{parent.inputs.matrix_spec}}
+
+  aggregate:
+    type: command
+    component: ../components/aggregate_results_flat_real.yml
+    inputs:
+      bundles: ${{parent.jobs.run_all.outputs.bundles}}
+    outputs:
+      report_dir: ${{parent.outputs.aggregate_report}}

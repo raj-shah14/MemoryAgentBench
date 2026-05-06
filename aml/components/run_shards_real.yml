@@ -1,0 +1,27 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: run_benchmark_shards_real
+display_name: Run Benchmark Shards (real LLM calls)
+version: 1
+description: Iterate every shard in a folder and exercise real Azure OpenAI chat completions per shard. Used by the real-pipeline parallel fan-out (one job per environment_profile).
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-real-smoke:1
+
+inputs:
+  shards:
+    type: uri_folder
+  environment_profile:
+    type: string
+
+outputs:
+  bundles:
+    type: uri_folder
+
+command: >-
+  python real_smoke_workload.py
+  --shards_dir ${{inputs.shards}}
+  --out_root ${{outputs.bundles}}
+  --environment_profile ${{inputs.environment_profile}}

@@ -1,0 +1,18 @@
+{
+  "submitted_at": "2026-05-06T19:04:28.904065Z",
+  "subscription_id": "c7d74d79-1ca2-4d95-a534-783b00cbf117",
+  "resource_group": "shahra-rg",
+  "workspace_name": "shahra-workspace",
+  "jobs": {
+    "sequential": {
+      "name": "jolly_mangos_q92r5m8ynv",
+      "status": "Submitted",
+      "studio_url": "https://ml.azure.com/runs/jolly_mangos_q92r5m8ynv?wsid=/subscriptions/c7d74d79-1ca2-4d95-a534-783b00cbf117/resourcegroups/shahra-rg/workspaces/shahra-workspace&tid=72f988bf-86f1-41af-91ab-2d7cd011db47"
+    },
+    "parallel": {
+      "name": "witty_frame_62m6sg3blb",
+      "status": "Submitted",
+      "studio_url": "https://ml.azure.com/runs/witty_frame_62m6sg3blb?wsid=/subscriptions/c7d74d79-1ca2-4d95-a534-783b00cbf117/resourcegroups/shahra-rg/workspaces/shahra-workspace&tid=72f988bf-86f1-41af-91ab-2d7cd011db47"
+    }
+  }
+}
