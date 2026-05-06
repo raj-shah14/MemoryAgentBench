@@ -1,0 +1,146 @@
+{
+  "sequential": {
+    "name": "amusing_milk_wz5ly3cmdr",
+    "status": "Completed",
+    "display_name": "memoryagentbench_sequential_real_big",
+    "duration_seconds": 679.148793,
+    "started": "2026-05-06T19:28:05.390906+00:00",
+    "ended": "2026-05-06T19:39:24.539699+00:00",
+    "children": [
+      {
+        "name": "90425dfb-6fbe-44a9-a2f5-5eba90f39ce3",
+        "display_name": "run_all",
+        "status": "Completed",
+        "duration_seconds": 8.468113,
+        "started": "2026-05-06T19:28:07.189063+00:00",
+        "ended": "2026-05-06T19:28:15.657176+00:00"
+      },
+      {
+        "name": "f350a0ae-6e1a-469c-9fd8-a60b4766b7cd",
+        "display_name": "aggregate",
+        "status": "Completed",
+        "duration_seconds": 8.495167,
+        "started": "2026-05-06T19:38:46.383607+00:00",
+        "ended": "2026-05-06T19:38:54.878774+00:00"
+      }
+    ]
+  },
+  "parallel": {
+    "name": "silver_cabbage_jmlm63jqb7",
+    "status": "Completed",
+    "display_name": "memoryagentbench_parallel_real_big_pershard",
+    "duration_seconds": 256.203196,
+    "started": "2026-05-06T19:29:59.724147+00:00",
+    "ended": "2026-05-06T19:34:15.927343+00:00",
+    "children": [
+      {
+        "name": "5e79a73c-6f8f-44a5-8c5f-aba2f10ed0c3",
+        "display_name": "run_shard_10",
+        "status": "Completed",
+        "duration_seconds": 11.699765,
+        "started": "2026-05-06T19:30:02.521160+00:00",
+        "ended": "2026-05-06T19:30:14.220925+00:00"
+      },
+      {
+        "name": "e7e20cc4-24ee-4e58-ba5d-4174bf8b6f56",
+        "display_name": "run_shard_01",
+        "status": "Completed",
+        "duration_seconds": 11.663549,
+        "started": "2026-05-06T19:30:02.524869+00:00",
+        "ended": "2026-05-06T19:30:14.188418+00:00"
+      },
+      {
+        "name": "17366dd5-259a-4727-997d-cde85608050e",
+        "display_name": "run_shard_09",
+        "status": "Completed",
+        "duration_seconds": 11.446985,
+        "started": "2026-05-06T19:30:02.528318+00:00",
+        "ended": "2026-05-06T19:30:13.975303+00:00"
+      },
+      {
+        "name": "5c357736-5a46-49ef-b852-ce4165165521",
+        "display_name": "run_shard_07",
+        "status": "Completed",
+        "duration_seconds": 11.479337,
+        "started": "2026-05-06T19:30:02.551278+00:00",
+        "ended": "2026-05-06T19:30:14.030615+00:00"
+      },
+      {
+        "name": "b4a17140-f3d8-476d-9182-b3691ded7629",
+        "display_name": "run_shard_08",
+        "status": "Completed",
+        "duration_seconds": 11.871796,
+        "started": "2026-05-06T19:30:02.554559+00:00",
+        "ended": "2026-05-06T19:30:14.426355+00:00"
+      },
+      {
+        "name": "31e15202-65e0-48b8-b486-75aebc3e65b3",
+        "display_name": "run_shard_06",
+        "status": "Completed",
+        "duration_seconds": 11.477241,
+        "started": "2026-05-06T19:30:02.566666+00:00",
+        "ended": "2026-05-06T19:30:14.043907+00:00"
+      },
+      {
+        "name": "0fa8fe10-1679-47de-89cc-9615f14f6210",
+        "display_name": "step",
+        "status": "Completed",
+        "duration_seconds": 11.829291,
+        "started": "2026-05-06T19:30:02.580637+00:00",
+        "ended": "2026-05-06T19:30:14.409928+00:00"
+      },
+      {
+        "name": "3a47b49e-83c2-46d8-8adf-baff1f93a9e1",
+        "display_name": "run_shard_03",
+        "status": "Completed",
+        "duration_seconds": 11.634569,
+        "started": "2026-05-06T19:30:02.584867+00:00",
+        "ended": "2026-05-06T19:30:14.219436+00:00"
+      },
+      {
+        "name": "3566ab18-45f1-409d-8e05-27f840f05d1b",
+        "display_name": "run_shard_04",
+        "status": "Completed",
+        "duration_seconds": 11.812554,
+        "started": "2026-05-06T19:30:02.587722+00:00",
+        "ended": "2026-05-06T19:30:14.400276+00:00"
+      },
+      {
+        "name": "ee9c55d7-b3ea-40c2-85bd-2894611a4891",
+        "display_name": "run_shard_02",
+        "status": "Completed",
+        "duration_seconds": 6.823105,
+        "started": "2026-05-06T19:30:02.589318+00:00",
+        "ended": "2026-05-06T19:30:09.412423+00:00"
+      },
+      {
+        "name": "6cda1ba7-d5d0-4e39-9898-d9611f671aac",
+        "display_name": "run_shard_05",
+        "status": "Completed",
+        "duration_seconds": 82.783258,
+        "started": "2026-05-06T19:30:02.593933+00:00",
+        "ended": "2026-05-06T19:31:25.377191+00:00"
+      },
+      {
+        "name": "c7a4389f-e76b-44c9-b346-30be8855ed92",
+        "display_name": "run_shard_00",
+        "status": "Completed",
+        "duration_seconds": 11.420115,
+        "started": "2026-05-06T19:30:02.604529+00:00",
+        "ended": "2026-05-06T19:30:14.024644+00:00"
+      },
+      {
+        "name": "8b0c826a-62e2-494e-b74e-bebabee10fb9",
+        "display_name": "agg",
+        "status": "Completed",
+        "duration_seconds": 8.215075,
+        "started": "2026-05-06T19:33:18.139845+00:00",
+        "ended": "2026-05-06T19:33:26.354920+00:00"
+      }
+    ]
+  },
+  "comparison": {
+    "speedup": 2.650820924966135,
+    "absolute_savings_seconds": 422.94559699999996
+  }
+}
