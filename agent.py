@@ -277,13 +277,9 @@ class AgentWrapper:
             "cosmos_throughput_mode": os.environ.get("COSMOS_DB_THROUGHPUT_MODE", "serverless"),
             "cosmos_autoscale_max_ru": int(os.environ.get("COSMOS_DB_AUTOSCALE_MAX_RU", "1000")),
             "ai_foundry_endpoint": os.environ.get("AI_FOUNDRY_ENDPOINT"),
-            "embedding_model": os.environ.get("EMBEDDING_MODEL", "text-embedding-3-large"),
+            "embedding_deployment_name": os.environ.get("AI_FOUNDRY_EMBEDDING_DEPLOYMENT_NAME", "text-embedding-3-large"),
             "use_default_credential": True,
         }
-        adf_endpoint = os.environ.get("ADF_ENDPOINT")
-        if adf_endpoint:
-            cosmos_kwargs["adf_endpoint"] = adf_endpoint
-            cosmos_kwargs["adf_key"] = os.environ.get("ADF_KEY", "")
 
         self.memory = CosmosMemoryClient(**cosmos_kwargs)
         try:
@@ -1240,8 +1236,8 @@ class AgentWrapper:
             return
         try:
             if mode in ('facts', 'both'):
-                print(f"\n[AMT] extract_facts user={self._amt_user_id} thread={self._amt_thread_id}\n")
-                self.memory.extract_facts(user_id=self._amt_user_id, thread_id=self._amt_thread_id)
+                print(f"\n[AMT] extract_memories user={self._amt_user_id} thread={self._amt_thread_id}\n")
+                self.memory.extract_memories(user_id=self._amt_user_id, thread_id=self._amt_thread_id)
             if mode in ('summary', 'both'):
                 print(f"\n[AMT] generate_thread_summary user={self._amt_user_id} thread={self._amt_thread_id}\n")
                 self.memory.generate_thread_summary(user_id=self._amt_user_id, thread_id=self._amt_thread_id)
