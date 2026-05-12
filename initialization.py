@@ -136,7 +136,7 @@ def generate_agent_save_folder(agent_config, dataset_config, current_context_ind
     agent_name = agent_config['agent_name']
     
     # Generate base path based on agent type
-    if any(agent_type in agent_name for agent_type in ["mem0", "cognee", "letta", "zep"]):
+    if any(agent_type in agent_name for agent_type in ["mem0", "cognee", "letta", "zep", "amt"]):
         base_path = _generate_memory_agent_base_path(agent_config, dataset_config, runtime_config)
         return os.path.join(base_path, f"exp_{current_context_index}")
     elif "rag" in agent_name:
@@ -208,7 +208,7 @@ def _apply_chunk_size_ablation(command_line_args, agent_config, dataset_config):
     new_chunk_size = command_line_args.chunk_size_ablation
     
     # Check if this is a memory agent that uses agent_chunk_size
-    if any(agent_name in agent_config['agent_name'] for agent_name in ['mem0', 'letta', 'cognee', 'zep']):
+    if any(agent_name in agent_config['agent_name'] for agent_name in ['mem0', 'letta', 'cognee', 'zep', 'amt']):
         agent_config['agent_chunk_size'] = new_chunk_size
         dataset_config['chunk_size'] = new_chunk_size
         print(f"\n\nUsing agent chunk_size: {agent_config['agent_chunk_size']}\n\n")
@@ -316,7 +316,7 @@ def _generate_output_name_tag(agent_config, dataset_config):
             f"chunk{safe_get(agent_config, 'agent_chunk_size')}",
             f"mode{safe_get(agent_config, 'letta_mode')}"
         ]
-    elif any(agent_type in agent_name for agent_type in ["mem0", "cognee", "zep"]):
+    elif any(agent_type in agent_name for agent_type in ["mem0", "cognee", "zep", "amt"]):
         agent_components = [
             f"k{safe_get(agent_config, 'retrieve_num')}",
             f"chunk{safe_get(agent_config, 'agent_chunk_size')}"
@@ -327,7 +327,7 @@ def _generate_output_name_tag(agent_config, dataset_config):
             f"chunk{safe_get(dataset_config, 'chunk_size')}"
         ]
     
-    return "_".join(base_components + agent_components)
+    return _sanitize_path_segment("_".join(base_components + agent_components))
 
 
 # ============================================================================
@@ -360,34 +360,49 @@ def _calculate_last_completed_context_id(all_query_answer_pairs, total_queries_p
 # AGENT FOLDER GENERATION HELPERS
 # ============================================================================
 
+def _sanitize_path_segment(value):
+    """Replace characters that are invalid in Windows path segments."""
+    if value is None:
+        return ""
+    text = str(value)
+    for ch in '<>:"/\\|?*':
+        text = text.replace(ch, '_')
+    return text
+
+
 def _generate_memory_agent_base_path(agent_config, dataset_config, runtime_config):
-    """Generate base path for memory agents (letta, mem0, cognee, zep)."""
+    """Generate base path for memory agents (letta, mem0, cognee, zep, amt)."""
     agent_name = agent_config['agent_name']
+    sub_dataset = _sanitize_path_segment(dataset_config['sub_dataset'])
+    model = _sanitize_path_segment(agent_config['model'])
     base_path = os.path.join(
         runtime_config['agent_state_root'],
-        f"{agent_name}_{dataset_config['sub_dataset']}_chunk{agent_config['agent_chunk_size']}_model{agent_config['model']}"
+        f"{agent_name}_{sub_dataset}_chunk{agent_config['agent_chunk_size']}_model{model}"
     )
-    
-    return (f"{base_path}_mode{agent_config['letta_mode']}" 
+
+    return (f"{base_path}_mode{_sanitize_path_segment(agent_config['letta_mode'])}"
             if "letta" in agent_name else base_path)
 
 
 def _generate_rag_agent_path(agent_config, dataset_config, current_context_index, runtime_config):
     """Generate path for RAG agents."""
+    sub_dataset = _sanitize_path_segment(dataset_config['sub_dataset'])
+    model = _sanitize_path_segment(agent_config['model'])
     return os.path.join(
         runtime_config['agent_state_root'],
-        f"{agent_config['agent_name']}_{dataset_config['sub_dataset']}"
+        f"{agent_config['agent_name']}_{sub_dataset}"
         f"_k{agent_config['retrieve_num']}_chunk{dataset_config['chunk_size']}"
-        f"_model{agent_config['model']}",
+        f"_model{model}",
         f"exp_{current_context_index}",
     )
 
 
 def _generate_default_agent_path(agent_config, dataset_config, current_context_index, runtime_config):
     """Generate path for default agents."""
+    sub_dataset = _sanitize_path_segment(dataset_config['sub_dataset'])
     return os.path.join(
         runtime_config['agent_state_root'],
-        f"{agent_config['agent_name']}_{dataset_config['sub_dataset']}",
+        f"{agent_config['agent_name']}_{sub_dataset}",
         f"exp_{current_context_index}",
     )
 
