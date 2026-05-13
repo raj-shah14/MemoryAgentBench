@@ -1,0 +1,82 @@
+{
+  "sequential": {
+    "name": "jolly_mangos_q92r5m8ynv",
+    "status": "Completed",
+    "display_name": "memoryagentbench_sequential_real",
+    "duration_seconds": 488.349052,
+    "started": "2026-05-06T19:04:58.592605+00:00",
+    "ended": "2026-05-06T19:13:06.941657+00:00",
+    "children": [
+      {
+        "name": "67442baf-f6a3-4821-b6c1-bc040015527d",
+        "display_name": "run_all",
+        "status": "Completed",
+        "duration_seconds": 312.87409,
+        "started": "2026-05-06T19:05:01.075984+00:00",
+        "ended": "2026-05-06T19:10:13.950074+00:00"
+      },
+      {
+        "name": "aa58ade5-e220-45bf-9618-a67b89574195",
+        "display_name": "aggregate",
+        "status": "Completed",
+        "duration_seconds": 6.835082,
+        "started": "2026-05-06T19:12:29.531277+00:00",
+        "ended": "2026-05-06T19:12:36.366359+00:00"
+      }
+    ]
+  },
+  "parallel": {
+    "name": "witty_frame_62m6sg3blb",
+    "status": "Completed",
+    "display_name": "memoryagentbench_parallel_real",
+    "duration_seconds": 595.21623,
+    "started": "2026-05-06T19:05:15.001026+00:00",
+    "ended": "2026-05-06T19:15:10.217256+00:00",
+    "children": [
+      {
+        "name": "1370f226-d574-4eee-b6f5-0ec5fec85f5b",
+        "display_name": "materialize_matrix",
+        "status": "Completed",
+        "duration_seconds": 262.886201,
+        "started": "2026-05-06T19:05:16.541542+00:00",
+        "ended": "2026-05-06T19:09:39.427743+00:00"
+      },
+      {
+        "name": "c2a17828-a232-4836-8502-969d7bce6e25",
+        "display_name": "run_base",
+        "status": "Completed",
+        "duration_seconds": 19.732856,
+        "started": "2026-05-06T19:11:43.866014+00:00",
+        "ended": "2026-05-06T19:12:03.598870+00:00"
+      },
+      {
+        "name": "328c230c-0154-4009-9f07-d0710489eb1e",
+        "display_name": "run_hipporag",
+        "status": "Completed",
+        "duration_seconds": 7.036537,
+        "started": "2026-05-06T19:11:43.887632+00:00",
+        "ended": "2026-05-06T19:11:50.924169+00:00"
+      },
+      {
+        "name": "ec52a7c2-604e-47de-a79e-5ecc2e486199",
+        "display_name": "run_memory",
+        "status": "Completed",
+        "duration_seconds": 19.680059,
+        "started": "2026-05-06T19:11:43.906345+00:00",
+        "ended": "2026-05-06T19:12:03.586404+00:00"
+      },
+      {
+        "name": "6070e846-4095-48d1-ab25-0547a1d7c8ad",
+        "display_name": "aggregate",
+        "status": "Completed",
+        "duration_seconds": 7.392795,
+        "started": "2026-05-06T19:14:26.133641+00:00",
+        "ended": "2026-05-06T19:14:33.526436+00:00"
+      }
+    ]
+  },
+  "comparison": {
+    "speedup": 0.8204565456825664,
+    "absolute_savings_seconds": -106.86717800000002
+  }
+}

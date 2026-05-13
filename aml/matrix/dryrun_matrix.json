@@ -1,0 +1,31 @@
+{
+  "jobs": [
+    {
+      "name": "dryrun-base-sample",
+      "run_id": "dryrun-base-sample",
+      "backend": "long_context",
+      "environment_profile": "base",
+      "agent_config": "configs/agent_conf/Long_Context_Agents/Long_context_agent_gpt-4o-mini.yaml",
+      "dataset_config": "configs/data_conf/Accurate_Retrieval/Ruler/QA/Ruler_qa1_197k.yaml",
+      "dry_run": true
+    },
+    {
+      "name": "dryrun-memory-sample",
+      "run_id": "dryrun-memory-sample",
+      "backend": "mem0",
+      "environment_profile": "memory",
+      "agent_config": "configs/agent_conf/RAG_Agents/gpt-4o-mini/Structure_rag_gpt-4o-mini-mem0.yaml",
+      "dataset_config": "configs/data_conf/Accurate_Retrieval/Ruler/QA/Ruler_qa1_197k.yaml",
+      "dry_run": true
+    },
+    {
+      "name": "dryrun-hipporag-sample",
+      "run_id": "dryrun-hipporag-sample",
+      "backend": "hipporag",
+      "environment_profile": "hipporag",
+      "agent_config": "configs/agent_conf/RAG_Agents/gpt-4o-mini/Structure_rag_gpt-4o-mini-hippo_rag_v2_nv.yaml",
+      "dataset_config": "configs/data_conf/Accurate_Retrieval/Ruler/QA/Ruler_qa1_197k.yaml",
+      "dry_run": true
+    }
+  ]
+}

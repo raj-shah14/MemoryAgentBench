@@ -1,0 +1,140 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+
+display_name: memoryagentbench_parallel_dryrun
+experiment_name: memoryagentbench_parallel_dryrun
+description: Smoke pipeline that fans out one stub job per environment profile to validate AMLv2 orchestration end-to-end without invoking real backends.
+
+settings:
+  default_datastore: azureml:workspaceblobstore
+  default_compute: azureml:image-builder
+  continue_on_step_failure: false
+
+inputs:
+  source_tree:
+    type: uri_folder
+    path: ../..
+  matrix_spec:
+    type: uri_file
+    path: ../matrix/dryrun_matrix.json
+
+outputs:
+  aggregate_report:
+    type: uri_folder
+    mode: upload
+
+jobs:
+  materialize_matrix:
+    type: command
+    component: ../components/materialize_matrix_dryrun.yml
+    inputs:
+      matrix_spec: ${{parent.inputs.matrix_spec}}
+
+  run_base:
+    type: parallel
+    compute: azureml:image-builder
+    inputs:
+      input_data: ${{parent.jobs.materialize_matrix.outputs.base_shards}}
+      source_tree: ${{parent.inputs.source_tree}}
+    outputs:
+      artifacts:
+        type: uri_folder
+        mode: rw_mount
+    input_data: ${{inputs.input_data}}
+    mini_batch_size: "1"
+    resources:
+      instance_count: 1
+    max_concurrency_per_instance: 1
+    logging_level: INFO
+    mini_batch_error_threshold: 0
+    retry_settings:
+      max_retries: 1
+      timeout: 1800
+    environment_variables:
+      PYTHONUNBUFFERED: "1"
+    task:
+      type: run_function
+      code: ../scripts
+      entry_script: run_parallel_benchmark.py
+      environment: azureml:mabench-dryrun:2
+      program_arguments: >-
+        --repo_root ${{inputs.source_tree}}
+        --artifacts_root ${{outputs.artifacts}}
+        --environment_profile base
+        --dry_run
+
+  run_memory:
+    type: parallel
+    compute: azureml:image-builder
+    inputs:
+      input_data: ${{parent.jobs.materialize_matrix.outputs.memory_shards}}
+      source_tree: ${{parent.inputs.source_tree}}
+    outputs:
+      artifacts:
+        type: uri_folder
+        mode: rw_mount
+    input_data: ${{inputs.input_data}}
+    mini_batch_size: "1"
+    resources:
+      instance_count: 1
+    max_concurrency_per_instance: 1
+    logging_level: INFO
+    mini_batch_error_threshold: 0
+    retry_settings:
+      max_retries: 1
+      timeout: 1800
+    environment_variables:
+      PYTHONUNBUFFERED: "1"
+    task:
+      type: run_function
+      code: ../scripts
+      entry_script: run_parallel_benchmark.py
+      environment: azureml:mabench-dryrun:2
+      program_arguments: >-
+        --repo_root ${{inputs.source_tree}}
+        --artifacts_root ${{outputs.artifacts}}
+        --environment_profile memory
+        --dry_run
+
+  run_hipporag:
+    type: parallel
+    compute: azureml:image-builder
+    inputs:
+      input_data: ${{parent.jobs.materialize_matrix.outputs.hipporag_shards}}
+      source_tree: ${{parent.inputs.source_tree}}
+    outputs:
+      artifacts:
+        type: uri_folder
+        mode: rw_mount
+    input_data: ${{inputs.input_data}}
+    mini_batch_size: "1"
+    resources:
+      instance_count: 1
+    max_concurrency_per_instance: 1
+    logging_level: INFO
+    mini_batch_error_threshold: 0
+    retry_settings:
+      max_retries: 1
+      timeout: 1800
+    environment_variables:
+      PYTHONUNBUFFERED: "1"
+    task:
+      type: run_function
+      code: ../scripts
+      entry_script: run_parallel_benchmark.py
+      environment: azureml:mabench-dryrun:2
+      program_arguments: >-
+        --repo_root ${{inputs.source_tree}}
+        --artifacts_root ${{outputs.artifacts}}
+        --environment_profile hipporag
+        --dry_run
+
+  aggregate:
+    type: command
+    component: ../components/aggregate_results_dryrun.yml
+    inputs:
+      base_artifacts: ${{parent.jobs.run_base.outputs.artifacts}}
+      memory_artifacts: ${{parent.jobs.run_memory.outputs.artifacts}}
+      hipporag_artifacts: ${{parent.jobs.run_hipporag.outputs.artifacts}}
+    outputs:
+      report_dir: ${{parent.outputs.aggregate_report}}

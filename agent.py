@@ -25,7 +25,7 @@ class AgentWrapper:
     - RAG agents (various implementations)
     """
 
-    def __init__(self, agent_config, dataset_config, load_agent_from):
+    def __init__(self, agent_config, dataset_config, load_agent_from, runtime_config=None):
         """
         Initialize the agent wrapper with specified configuration.
         
@@ -39,10 +39,21 @@ class AgentWrapper:
         self.sub_dataset = dataset_config['sub_dataset']
         self.context_max_length = dataset_config['context_max_length']
         self.dataset = dataset_config['dataset']
+        self.runtime_config = runtime_config or {}
         
         # Output and storage configuration
-        self.output_dir = agent_config['output_dir']
+        self.output_dir = self.runtime_config.get('artifact_root', agent_config['output_dir'])
         self.agent_save_to_folder = load_agent_from
+        self.retrieval_output_root = self.runtime_config.get(
+            'retrieval_artifacts_root',
+            os.path.join(self.output_dir, 'retrieval'),
+        )
+        self.letta_dir = self.runtime_config.get(
+            'letta_dir',
+            os.environ.get('LETTA_DIR', os.path.expanduser('~/.letta')),
+        )
+        self.cognee_data_root = self.runtime_config.get('cognee_data_root', './cognee/.data_storage')
+        self.cognee_system_root = self.runtime_config.get('cognee_system_root', './cognee/.cognee_system')
         
         # Context and token limits
         self.input_length_limit = (agent_config['input_length_limit'] - 
@@ -175,6 +186,8 @@ class AgentWrapper:
         if "api" not in agent_config['agent_name']:
             from letta import create_client, LLMConfig, EmbeddingConfig, BasicBlockMemory
 
+            os.environ['LETTA_DIR'] = self.letta_dir
+            os.makedirs(self.letta_dir, exist_ok=True)
             self.chunk_size = agent_config['agent_chunk_size']
             self.letta_mode = agent_config['letta_mode']
             
@@ -296,12 +309,18 @@ class AgentWrapper:
 
     def _initialize_cognee_agent(self, agent_config, dataset_config):
         """Initialize Cognee agent with knowledge graph configuration."""
+        import cognee
+
         self.context = ''
         self.chunks = []
         self.retrieve_num = agent_config['retrieve_num']
         self.chunk_size = agent_config['agent_chunk_size']
         self.agent_start_time = time.time()
-        self.cognee_dir = './cognee/.cognee_system/databases/cognee.lancedb'
+        os.makedirs(self.cognee_data_root, exist_ok=True)
+        os.makedirs(self.cognee_system_root, exist_ok=True)
+        cognee.config.data_root_directory(self.cognee_data_root)
+        cognee.config.system_root_directory(self.cognee_system_root)
+        self.cognee_dir = os.path.join(self.cognee_system_root, 'databases', 'cognee.lancedb')
     
     def _initialize_zep_agent(self, agent_config):
         # from zep_cloud.client import AsyncZep
@@ -827,7 +846,7 @@ class AgentWrapper:
             self.agent_start_time = time.time()  # Reset time
             
             # save the context
-            save_dir = f"./outputs/rag_retrieved/{self.agent_name}/k_{self.retrieve_num}/{self.sub_dataset}/chunksize_{self.chunk_size}/query_{query_id}_context_{context_id}.json"
+            save_dir = self._build_retrieval_artifact_path(query_id, context_id)
             os.makedirs(os.path.dirname(save_dir), exist_ok=True)
             with open(save_dir, "w") as f:
                 paragraphs = [p for p in retrieved_context.replace("\r\n", "\n").split("\n") if p.strip()]
@@ -891,7 +910,7 @@ class AgentWrapper:
 
         # Save the retrieved context as JSON (if the method provides it)
         if output.get("retrieval_context"):
-            save_dir = f"./outputs/rag_retrieved/{self.agent_name}/k_{self.retrieve_num}/{self.sub_dataset}/chunksize_{self.chunk_size}/query_{query_id}_context_{context_id}.json"
+            save_dir = self._build_retrieval_artifact_path(query_id, context_id)
             os.makedirs(os.path.dirname(save_dir), exist_ok=True)
             with open(save_dir, "w") as f:
                 json.dump(output["retrieval_context"], f)
@@ -1267,7 +1286,7 @@ class AgentWrapper:
             
             import shutil
             # Copy the SQLite database file to the target folder
-            source_db_path = os.path.expanduser("~/.letta/sqlite.db")
+            source_db_path = self._get_letta_sqlite_path()
             target_db_path = f"{agent_save_folder}/sqlite.db"
             shutil.copyfile(source_db_path, target_db_path)
             
@@ -1296,7 +1315,8 @@ class AgentWrapper:
             import shutil
             # Copy the database file back to the Letta directory
             source_db_path = f"{agent_save_folder}/sqlite.db"
-            target_db_path = os.path.expanduser("~/.letta/sqlite.db")
+            target_db_path = self._get_letta_sqlite_path()
+            os.makedirs(os.path.dirname(target_db_path), exist_ok=True)
             shutil.copyfile(source_db_path, target_db_path)
 
             # Load agent ID and find the corresponding agent state
@@ -1315,4 +1335,19 @@ class AgentWrapper:
                 messages = f.read()
         
         print("\n\n Agent loaded successfully...\n\n")
+
+    def _get_letta_sqlite_path(self):
+        """Return the run-scoped Letta SQLite path."""
+        return os.path.join(self.letta_dir, 'sqlite.db')
+
+    def _build_retrieval_artifact_path(self, query_id, context_id):
+        """Build a run-scoped path for retrieved-context debug artifacts."""
+        return os.path.join(
+            self.retrieval_output_root,
+            self.agent_name,
+            f"k_{self.retrieve_num}",
+            self.sub_dataset,
+            f"chunksize_{self.chunk_size}",
+            f"query_{query_id}_context_{context_id}.json",
+        )
         

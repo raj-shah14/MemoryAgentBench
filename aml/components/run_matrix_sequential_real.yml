@@ -1,0 +1,25 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: run_matrix_sequential_real
+display_name: Run Matrix Sequentially (real LLM calls)
+version: 1
+description: Iterate every shard in the raw matrix file in a single process, exercising real Azure OpenAI calls. Sequential baseline for the real pipeline.
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-real-smoke:1
+
+inputs:
+  matrix_spec:
+    type: uri_file
+
+outputs:
+  bundles:
+    type: uri_folder
+
+command: >-
+  python real_smoke_workload.py
+  --matrix_spec ${{inputs.matrix_spec}}
+  --out_root ${{outputs.bundles}}
+  --environment_profile sequential

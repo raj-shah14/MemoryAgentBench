@@ -1,0 +1,30 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: materialize_benchmark_matrix_dryrun
+display_name: Materialize Benchmark Matrix (dry-run)
+version: 1
+description: Same as materialize_benchmark_matrix but bound to the lightweight dry-run environment.
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-dryrun:2
+
+inputs:
+  matrix_spec:
+    type: uri_file
+
+outputs:
+  base_shards:
+    type: uri_folder
+  memory_shards:
+    type: uri_folder
+  hipporag_shards:
+    type: uri_folder
+
+command: >-
+  python materialize_matrix.py
+  --matrix_spec ${{inputs.matrix_spec}}
+  --base_output_dir ${{outputs.base_shards}}
+  --memory_output_dir ${{outputs.memory_shards}}
+  --hipporag_output_dir ${{outputs.hipporag_shards}}

@@ -177,3 +177,79 @@ We would appreciate it if you could cite the following paper if you found the re
   year={2025}
 }
 ```
+## ☁️ Running Benchmarks in Parallel on Azure Machine Learning
+
+The default `main.py` driver is single-process and runs every (agent, dataset) pair sequentially. For larger sweeps we ship an Azure Machine Learning v2 pipeline layout under [aml/](aml/) that fans out per-shard benchmark runs across an AML compute cluster while keeping each run's artifacts isolated.
+
+### Layout
+
+- [aml/scripts/run_parallel_benchmark.py](aml/scripts/run_parallel_benchmark.py) — per-shard worker (works under both `type: parallel` and `type: command` jobs via `--shards_dir`).
+- [aml/scripts/run_sequential_benchmark.py](aml/scripts/run_sequential_benchmark.py) — sequential baseline; iterates the entire matrix in a single command job.
+- [aml/scripts/materialize_matrix.py](aml/scripts/materialize_matrix.py) — splits a single matrix JSON into per-profile shard folders consumed by the fan-out steps.
+- [aml/scripts/aggregate_results.py](aml/scripts/aggregate_results.py) / [aml/scripts/aggregate_results_flat.py](aml/scripts/aggregate_results_flat.py) — reducers that combine bundles into `combined_runs.json` and `leaderboard.csv`.
+- [aml/pipelines/parallel_benchmark_pipeline_dryrun_cmd.yml](aml/pipelines/parallel_benchmark_pipeline_dryrun_cmd.yml) — `command`-job fan-out (no Storage Tables RBAC needed).
+- [aml/pipelines/parallel_benchmark_pipeline_dryrun.yml](aml/pipelines/parallel_benchmark_pipeline_dryrun.yml) — `parallel`-job fan-out (requires Storage Table data perms; see below).
+- [aml/pipelines/sequential_benchmark_pipeline_dryrun.yml](aml/pipelines/sequential_benchmark_pipeline_dryrun.yml) — sequential baseline pipeline used for runtime comparisons.
+- [aml/scripts/submit_pipeline.py](aml/scripts/submit_pipeline.py), [aml/scripts/poll_job.py](aml/scripts/poll_job.py), [aml/scripts/download_job_logs.py](aml/scripts/download_job_logs.py), [aml/scripts/compare_pipeline_runtimes.py](aml/scripts/compare_pipeline_runtimes.py) — submission, polling, log download, and wall-clock comparison helpers.
+
+### Quick start
+
+```powershell
+# 1. Probe the workspace and verify the compute cluster is reachable
+python aml/scripts/workspace_probe.py
+
+# 2. Register the lightweight dry-run environment (one-time)
+python aml/scripts/submit_pipeline.py --register-environments --environments dryrun
+
+# 3. Submit the command-fan-out smoke pipeline (3 shards, ~5 min)
+python aml/scripts/submit_pipeline.py `
+  --pipeline aml/pipelines/parallel_benchmark_pipeline_dryrun_cmd.yml `
+  --no-wait
+
+# 4. Poll and download artifacts
+python aml/scripts/poll_job.py --job_name <returned_name> --show_children
+python aml/scripts/download_job_logs.py --job_name <returned_name> --download_path .\logs
+```
+
+### Choosing a fan-out shape
+
+| Matrix size | Cluster `max_instances` | Recommended pipeline |
+|---|---|---|
+| 1–12 shards | 1 | `sequential_benchmark_pipeline_dryrun.yml` (per-step overhead dominates) |
+| 12–50 shards | ≥3 | `parallel_benchmark_pipeline_dryrun_cmd.yml` (true profile-level fan-out, no extra RBAC) |
+| 50+ shards | ≥3 | `parallel_benchmark_pipeline_dryrun.yml` with `mini_batch_size > 1` (multiplies fan-out beyond profile count) |
+
+### Common pitfalls
+
+- **`type: parallel` requires Storage Table RBAC.** The AML parallel runner's `master_poller` queries an Azure Table on the workspace storage account for cross-instance coordination. If the compute cluster's managed identity lacks `Storage Table Data Contributor` on that storage account, every parallel job fails with `AuthorizationPermissionMismatch` (HTTP 403, `SystemExit: 42`) before any user code runs. Either grant the role (see below) or use the command-based fan-out pipeline.
+- **Reserved output name `artifacts`.** AML implicitly reserves `outputs/artifacts/` for auto-collected system artifacts. A user-defined `outputs.artifacts` on a `command` job silently fails to bind, and the token `${{outputs.artifacts}}` renders as the literal string `DatasetOutputConfig:artifacts`. Use any other name (the components here use `bundles`).
+- **`max_retries: 0` is invalid for parallel jobs.** It must be ≥ 1.
+- **Dry-run env needs `azureml-core` + `azureml-dataset-runtime` + `azureml-defaults`.** Without them, parallel jobs fail to import `azureml_sys`.
+- **`max_instances=1` silently serializes fan-out.** Concurrent fan-out children declared in the pipeline DAG are queued onto the single available node, eliminating any parallelism benefit and adding per-step orchestration overhead.
+
+### Granting Storage Table RBAC for production-scale `type: parallel` runs
+
+The `command`-fan-out pipeline is sufficient for smoke validation and small fan-out scales (≤ a few dozen shards). To unlock the `type: parallel` job's mini-batch concurrency at production scale, grant the cluster's managed identity the `Storage Table Data Contributor` role on the AML workspace storage account. With Azure CLI:
+
+```powershell
+$WORKSPACE_STORAGE = az ml workspace show -n shahra-workspace -g shahra-rg --query storage_account -o tsv
+$CLUSTER_PRINCIPAL = az ml compute show -n image-builder -w shahra-workspace -g shahra-rg --query "identity.principal_id" -o tsv
+az role assignment create `
+  --assignee $CLUSTER_PRINCIPAL `
+  --role "Storage Table Data Contributor" `
+  --scope $WORKSPACE_STORAGE
+```
+
+If your compute cluster has no system-assigned identity, use the AML workspace's managed identity instead (`az ml workspace show ... --query "identity.principal_id"`).
+
+### Wall-clock comparison
+
+Use `compare_pipeline_runtimes.py` to extract execution windows from any pair of pipeline runs:
+
+```powershell
+python aml/scripts/compare_pipeline_runtimes.py `
+  --sequential <seq_job_name> `
+  --parallel <par_job_name>
+```
+
+Speedup is dominated by `max_instances`: with `max_instances=1` the parallel pipeline is 2× **slower** than the sequential baseline because step overhead is paid 5× instead of 2×. Bumping `max_instances` to at least the number of fan-out children (3 for our base/memory/hipporag profile split) is required to see any parallelism benefit.

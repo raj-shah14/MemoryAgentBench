@@ -1,0 +1,12 @@
+name: mabench-real-smoke
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - azureml-core
+      - azureml-defaults
+      - openai>=1.30
+      - tiktoken
+      - python-dotenv

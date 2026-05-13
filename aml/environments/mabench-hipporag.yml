@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: mabench-hipporag
+version: 1
+description: Environment for HippoRAG workloads that require the older OpenAI pin noted in the repo README.
+image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+conda_file: conda/hipporag.yml

@@ -44,6 +44,12 @@ def parse_command_line_arguments():
                        help='Limit maximum test queries for ablation studies (0 = no limit)')
     parser.add_argument('--force', action='store_true', default=False,
                        help='Force re-run even if results already exist')
+    parser.add_argument('--run_id', type=str, default='default',
+                       help='Logical run identifier used to isolate writable state and artifacts')
+    parser.add_argument('--state_root', type=str, default=None,
+                       help='Root directory for run-scoped writable backend state')
+    parser.add_argument('--artifact_root', type=str, default=None,
+                       help='Root directory for the run artifact bundle')
     return parser.parse_args()
 
 
@@ -62,7 +68,8 @@ def has_reached_query_limit(max_queries, current_query_index):
     return max_queries > 0 and current_query_index >= max_queries
 
 
-def save_results_to_file(output_path, agent_config, dataset_config, results, metrics, time_cost_list, start_time):
+def save_results_to_file(output_path, agent_config, dataset_config, runtime_config,
+                        results, metrics, time_cost_list, start_time):
     """Save current results to the output file."""
     # Calculate averaged metrics for logging
     averaged_metrics = {
@@ -86,8 +93,39 @@ def save_results_to_file(output_path, agent_config, dataset_config, results, met
     }
     
     # Write to file
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as file:
         json.dump(output_data, file, indent=4)
+
+    summary_path = runtime_config["summary_path"]
+    summary_data = {
+        "run_id": runtime_config["run_id"],
+        "artifact_root": runtime_config["artifact_root"],
+        "results_path": output_path,
+        "total_queries": len(results),
+        "time_cost": time_cost_list,
+        "averaged_metrics": averaged_metrics,
+    }
+    with open(summary_path, "w") as file:
+        json.dump(summary_data, file, indent=4)
+
+    metadata_path = runtime_config["metadata_path"]
+    metadata_data = {
+        "run_id": runtime_config["run_id"],
+        "artifact_root": runtime_config["artifact_root"],
+        "state_root": runtime_config["state_root"],
+        "agent_state_root": runtime_config["agent_state_root"],
+        "retrieval_artifacts_root": runtime_config["retrieval_artifacts_root"],
+        "agent_config_path": runtime_config["agent_config_path"],
+        "dataset_config_path": runtime_config["dataset_config_path"],
+        "agent_name": agent_config.get("agent_name"),
+        "model": agent_config.get("model"),
+        "dataset": dataset_config.get("dataset"),
+        "sub_dataset": dataset_config.get("sub_dataset"),
+    }
+    with open(metadata_path, "w") as file:
+        json.dump(metadata_data, file, indent=4)
+
     logger.info(f"Results saved at {output_path}")
 
 
@@ -108,7 +146,7 @@ def unpack_query_data(query_data):
 
 def process_queries_for_context(agent, query_answer_pairs, dataset_config, metrics, results,
                                query_index, context_index, last_processed_query_id, max_queries,
-                               agent_config, output_path, time_cost_list, start_time):
+                               agent_config, runtime_config, output_path, time_cost_list, start_time):
     """Process all queries for a given context."""
     print(f"\n!!!!!Processing {len(query_answer_pairs)} queries for context {context_index}!!!!!\n")
     
@@ -132,7 +170,7 @@ def process_queries_for_context(agent, query_answer_pairs, dataset_config, metri
         query_index += 1
         
         # Save results after each query (freq = 1)
-        save_results_to_file(output_path, agent_config, dataset_config, results, 
+        save_results_to_file(output_path, agent_config, dataset_config, runtime_config, results, 
                            metrics, time_cost_list, start_time)
         
     return metrics, results, query_index
@@ -140,7 +178,8 @@ def process_queries_for_context(agent, query_answer_pairs, dataset_config, metri
 
 def process_context(context_index, context_chunks, query_answer_pairs, agent_config, dataset_config,
                    metrics, results, query_index, last_processed_context_id, last_processed_query_id,
-                   max_queries, output_path, time_cost_list, start_time, force_rerun, total_contexts):
+                   max_queries, runtime_config, output_path, time_cost_list, start_time, force_rerun,
+                   total_contexts):
     """Process a single context and its queries."""
     # Skip contexts that have already been fully processed
     if should_skip_context(force_rerun, context_index, last_processed_context_id):
@@ -152,15 +191,15 @@ def process_context(context_index, context_chunks, query_answer_pairs, agent_con
         return metrics, results, query_index, True
     
     # Initialize agent for the current context
-    agent_save_folder = generate_agent_save_folder(agent_config, dataset_config, context_index)
+    agent_save_folder = generate_agent_save_folder(agent_config, dataset_config, context_index, runtime_config)
     agent = initialize_and_memorize_agent(agent_config, dataset_config, agent_save_folder,
-                                        context_chunks, context_index, total_contexts)
+                                        context_chunks, context_index, total_contexts, runtime_config)
     
     # Process all queries for this context
     metrics, results, query_index = process_queries_for_context(
         agent, query_answer_pairs, dataset_config, metrics, results,
         query_index, context_index, last_processed_query_id, max_queries,
-        agent_config, output_path, time_cost_list, start_time
+        agent_config, runtime_config, output_path, time_cost_list, start_time
     )
     
     return metrics, results, query_index, False
@@ -170,7 +209,7 @@ def main():
     """Main function to run the memory agent benchmark evaluation."""
     # Parse command line arguments and setup configurations
     args = parse_command_line_arguments()
-    agent_config, dataset_config, output_path = setup_configs_and_directories(args)
+    agent_config, dataset_config, runtime_config, output_path = setup_configs_and_directories(args)
     
     # Create agent and fetch evaluation data
     start_time, all_context_chunks, all_query_answer_pairs = create_agent_and_fetch_data(
@@ -193,7 +232,7 @@ def main():
         metrics, results, query_index, should_break = process_context(
             context_index, context_chunks, query_answer_pairs, agent_config, dataset_config,
             metrics, results, query_index, last_processed_context_id, last_processed_query_id,
-            args.max_test_queries_ablation, output_path, time_cost_list, start_time,
+            args.max_test_queries_ablation, runtime_config, output_path, time_cost_list, start_time,
             args.force, total_contexts
         )
         

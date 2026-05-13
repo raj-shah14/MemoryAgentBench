@@ -1,0 +1,30 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: materialize_benchmark_matrix_real
+display_name: Materialize Benchmark Matrix (real)
+version: 1
+description: Same matrix splitter as the dryrun variant, bound to the real-smoke env so the whole real pipeline uses one image.
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-real-smoke:1
+
+inputs:
+  matrix_spec:
+    type: uri_file
+
+outputs:
+  base_shards:
+    type: uri_folder
+  memory_shards:
+    type: uri_folder
+  hipporag_shards:
+    type: uri_folder
+
+command: >-
+  python materialize_matrix.py
+  --matrix_spec ${{inputs.matrix_spec}}
+  --base_output_dir ${{outputs.base_shards}}
+  --memory_output_dir ${{outputs.memory_shards}}
+  --hipporag_output_dir ${{outputs.hipporag_shards}}

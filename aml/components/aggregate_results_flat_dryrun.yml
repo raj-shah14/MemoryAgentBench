@@ -1,0 +1,24 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+
+name: aggregate_benchmark_results_flat_dryrun
+display_name: Aggregate Benchmark Results (flat, dry-run)
+version: 1
+description: Aggregator for a single flat folder of bundles, used by the sequential pipeline.
+is_deterministic: false
+
+code: ../scripts
+environment: azureml:mabench-dryrun:2
+
+inputs:
+  bundles:
+    type: uri_folder
+
+outputs:
+  report_dir:
+    type: uri_folder
+
+command: >-
+  python aggregate_results_flat.py
+  --bundles ${{inputs.bundles}}
+  --report_dir ${{outputs.report_dir}}
