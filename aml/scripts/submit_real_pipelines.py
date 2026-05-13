@@ -200,10 +200,14 @@ def main() -> int:
         info = submit_one(ml_client, pipeline_paths[key], env_vars, args.wait)
         state["jobs"][key] = info
 
-    state_path = Path(args.state_file)
+    state_path = Path(args.state_file).resolve()
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
-    print(f"[submit_real_pipelines] wrote submission state -> {state_path.relative_to(REPO_ROOT)}")
+    try:
+        display_path = state_path.relative_to(REPO_ROOT)
+    except ValueError:
+        display_path = state_path
+    print(f"[submit_real_pipelines] wrote submission state -> {display_path}")
 
     if "sequential" in state["jobs"] and "parallel" in state["jobs"]:
         print("\nNext step:")

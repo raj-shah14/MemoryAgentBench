@@ -137,22 +137,50 @@ def run_shard(client: Any, deployment: str, job: dict, bundle_root: Path, args: 
     num_calls = int(job.get("real_completion_calls", args.default_completion_calls))
     prompt = job.get("prompt", DEFAULT_PROMPT)
 
+    # Lazy import so the file can be parsed without `openai` installed.
+    from openai import APIStatusError, BadRequestError  # noqa: WPS433
+
     started = time.time()
     per_call_seconds: list[float] = []
     sample_outputs: list[str] = []
+    call_errors: list[dict] = []
+    failed_calls = 0
     total_prompt_tokens = 0
     total_completion_tokens = 0
 
     for index in range(num_calls):
         call_started = time.time()
-        response = client.chat.completions.create(
-            model=deployment,
-            messages=[
-                {"role": "system", "content": "You are a concise smoke-test responder."},
-                {"role": "user", "content": f"[shard={run_id} call={index + 1}/{num_calls}] {prompt}"},
-            ],
-            max_completion_tokens=args.max_tokens,
-        )
+        try:
+            response = client.chat.completions.create(
+                model=deployment,
+                messages=[
+                    {"role": "system", "content": "You are a concise smoke-test responder."},
+                    {"role": "user", "content": f"[shard={run_id} call={index + 1}/{num_calls}] {prompt}"},
+                ],
+                max_completion_tokens=args.max_tokens,
+            )
+        except (BadRequestError, APIStatusError) as exc:
+            # Treat individual call failures (content-filter false positives, transient 4xx/5xx)
+            # as recorded-but-non-fatal so a single hiccup does not invalidate the shard run.
+            elapsed = time.time() - call_started
+            per_call_seconds.append(elapsed)
+            sample_outputs.append("")
+            failed_calls += 1
+            err_record = {
+                "call_index": index,
+                "error_type": type(exc).__name__,
+                "status_code": getattr(exc, "status_code", None),
+                "code": getattr(exc, "code", None),
+                "message": str(exc)[:500],
+            }
+            call_errors.append(err_record)
+            print(
+                f"[real_smoke_workload] shard={run_id} call={index + 1}/{num_calls} "
+                f"non-fatal error: {err_record['error_type']} "
+                f"status={err_record['status_code']} code={err_record['code']}"
+            )
+            continue
+
         elapsed = time.time() - call_started
         per_call_seconds.append(elapsed)
 
@@ -172,6 +200,7 @@ def run_shard(client: Any, deployment: str, job: dict, bundle_root: Path, args: 
         "run_id": run_id,
         "environment_profile": profile,
         "real_completion_calls": num_calls,
+        "failed_calls": failed_calls,
         "elapsed_seconds": elapsed_total,
         "per_call_seconds": per_call_seconds,
         "deployment": deployment,
@@ -184,6 +213,7 @@ def run_shard(client: Any, deployment: str, job: dict, bundle_root: Path, args: 
         "time_cost": [elapsed_total],
         "real_work": True,
         "dry_run": False,
+        "call_errors": call_errors,
     }
     metadata = {
         "run_id": run_id,

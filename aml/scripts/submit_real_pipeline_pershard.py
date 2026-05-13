@@ -214,10 +214,14 @@ def main() -> int:
             "studio_url": submitted.studio_url,
         },
     }
-    state_path = Path(args.state_file)
+    state_path = Path(args.state_file).resolve()
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
-    print(f"[submit] wrote submission state -> {state_path.relative_to(REPO_ROOT)}")
+    try:
+        display_path = state_path.relative_to(REPO_ROOT)
+    except ValueError:
+        display_path = state_path
+    print(f"[submit] wrote submission state -> {display_path}")
 
     if args.wait:
         try:
